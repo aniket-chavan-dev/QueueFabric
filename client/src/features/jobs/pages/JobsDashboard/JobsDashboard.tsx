@@ -24,7 +24,7 @@ export default function JobsDashboard() {
 
   useEffect(() => {
     const hasActiveJobs = list.some(
-      (job) => job.status === "pending" || job.status === "running"
+      (job) => job.status === "pending" || job.status === "running",
     );
 
     if (!hasActiveJobs) return;
@@ -44,7 +44,9 @@ export default function JobsDashboard() {
       className="p-6 space-y-6"
     >
       <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-semibold">Jobs</h2>
+        <h2 className="text-2xl font-semibold text-gray-600 dark:text-zinc-300">
+          Jobs
+        </h2>
         <CreateJobButton onClick={() => setOpen(true)} />
       </div>
 

@@ -13,8 +13,6 @@ export default function Navbar() {
 
   const auth = useAppSelector((state) => state.auth);
 
-  
-
   const handleLogout = () => {
     dispatch(logout());
     navigate("/login", { replace: true });
@@ -26,7 +24,6 @@ export default function Navbar() {
                     border-b border-gray-200 dark:border-zinc-800"
     >
       <div className="max-w-7xl mx-auto flex items-center justify-between px-4 sm:px-6 py-4">
-       
         <Link to="/" className="flex items-center gap-2">
           <div
             className="w-9 h-9 rounded-xl
@@ -42,9 +39,7 @@ export default function Navbar() {
           </h1>
         </Link>
 
-       
         <div className="flex items-center gap-4">
-         
           {auth.status === "authenticated" ? (
             <div className="flex items-center gap-4">
               <span className="text-sm text-gray-700 dark:text-zinc-300">
@@ -60,12 +55,17 @@ export default function Navbar() {
             </div>
           ) : (
             <div className="hidden sm:flex items-center gap-3">
-              <NavLink to="/login">Login</NavLink>
-              <NavLink to="/register">Register</NavLink>
+              <NavLink to="/login">
+                <span className="text-gray-600 dark:text-zinc-300">Login</span>
+              </NavLink>
+              <NavLink to="/register">
+                <span className="text-gray-600 dark:text-zinc-300">
+                  Register
+                </span>
+              </NavLink>
             </div>
           )}
 
-         
           <motion.button
             onClick={() => dispatch(toggleTheme())}
             whileTap={{ scale: 0.95 }}

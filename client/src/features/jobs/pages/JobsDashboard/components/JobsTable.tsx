@@ -21,8 +21,6 @@ interface Props {
 export default function JobsTable({ jobs, loading }: Props) {
   const dispatch = useAppDispatch();
 
- 
-
   if (loading) {
     return (
       <div className="py-12 text-center text-sm text-gray-500 dark:text-zinc-400">
@@ -63,7 +61,6 @@ export default function JobsTable({ jobs, loading }: Props) {
           </tr>
         </thead>
 
-       
         <motion.tbody layout>
           <AnimatePresence>
             {jobs.map((job) => (
@@ -91,7 +88,7 @@ export default function JobsTable({ jobs, loading }: Props) {
                   {new Date(job.created_at).toLocaleString()}
                 </td>
                 <td className="px-4 py-3 text-right">
-                  {job.status !== "running" &&
+                  {job.status === "failed" &&
                     job.attempts < job.max_attempts && (
                       <button
                         onClick={() => dispatch(retryExistingJob(job.id))}

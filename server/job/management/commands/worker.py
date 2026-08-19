@@ -5,6 +5,7 @@ from django.core.management.base import BaseCommand
 from django.core.mail import EmailMessage
 from django.db import transaction
 from django.utils import timezone
+from django.db.models import F
 
 from job.models import Job, JobResult, JobStatus
 
@@ -26,24 +27,28 @@ class Command(BaseCommand):
 
     
     def fetch_job(self):
-        #here also we use transactions for consistency and avoid race conditions because in future we increase workers so its become criticle section
         with transaction.atomic():
             job = (
                 Job.objects
-                .select_for_update(skip_locked=True) #if this row is locked means job is taken by an worker so skip that job
-                .filter(status=JobStatus.PENDING)
-                .order_by('created_at')
+                .select_for_update(skip_locked=True)
+                .filter(
+                    status=JobStatus.PENDING,
+                    attempts__lt=F("max_attempts"),
+                )
+                .order_by("created_at")
                 .first()
             )
 
             if not job:
                 return None
 
+            job.attempts += 1
             job.status = JobStatus.RUNNING
-            job.save(update_fields=['status'])
+
+            job.save(update_fields=["attempts", "status"])
 
             return job
-        
+            
 
     def execute_job(self, job):
         start_time = time.perf_counter()  
@@ -83,12 +88,17 @@ class Command(BaseCommand):
                 completed_at=timezone.now()
             )
 
-            job.status = JobStatus.FAILED
-            job.save(update_fields=['status'])
+            if job.attempts >= job.max_attempts:
+                job.status = JobStatus.FAILED
+            else:
+                job.status = JobStatus.PENDING
+
+            job.save(update_fields=["status"])
 
             self.stderr.write(
                 self.style.ERROR(
-                    f"Job {job.id} failed after {execution_time_ms} ms: {e}"
+                    f"Job {job.id} failed "
+                    f"(attempt {job.attempts}/{job.max_attempts}): {e}"
                 )
             )
 
@@ -128,6 +138,8 @@ class Command(BaseCommand):
         )
 
         email.send(fail_silently=False)
+
+        print(f"Email sent to {to} with subject '{subject}'")
 
         return {
             "message": "Email sent successfully",
