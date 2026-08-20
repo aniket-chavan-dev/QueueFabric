@@ -18,25 +18,20 @@ def shutdown(signum=None, frame=None):
 
     shutting_down = True
 
-    print("\nStopping Django and worker...", flush=True)
+    print("Stopping Django and worker...", flush=True)
 
-    processes = [worker, server]
-
-    for process in processes:
+    for process in (worker, server):
         if process is not None and process.poll() is None:
             try:
                 process.terminate()
             except ProcessLookupError:
                 pass
 
-    deadline = time.time() + 10
-
-    for process in processes:
-        if process is not None and process.poll() is None:
-            remaining = max(0, deadline - time.time())
-
+    # Give children time to exit
+    for process in (worker, server):
+        if process is not None:
             try:
-                process.wait(timeout=remaining)
+                process.wait(timeout=10)
             except subprocess.TimeoutExpired:
                 try:
                     process.kill()
@@ -44,17 +39,16 @@ def shutdown(signum=None, frame=None):
                     pass
 
     print("Shutdown complete.", flush=True)
-    sys.exit(0)
 
 
-signal.signal(signal.SIGINT, shutdown)
 signal.signal(signal.SIGTERM, shutdown)
+signal.signal(signal.SIGINT, shutdown)
 
 
 port = os.environ.get("PORT", "8000")
 
 
-print("Starting QueueFabric worker...", flush=True)
+print("Starting queue worker...", flush=True)
 
 worker = subprocess.Popen([
     sys.executable,
@@ -63,7 +57,7 @@ worker = subprocess.Popen([
 ])
 
 
-print("Starting Django/Gunicorn...", flush=True)
+print("Starting Django...", flush=True)
 
 server = subprocess.Popen([
     "gunicorn",
@@ -80,25 +74,22 @@ print("Queue worker started", flush=True)
 try:
     while True:
 
-        # Django/Gunicorn died
+        # If Gunicorn stops, stop the service.
         if server.poll() is not None:
             print(
-                f"Gunicorn stopped with exit code {server.returncode}",
+                f"Gunicorn stopped: {server.returncode}",
                 flush=True
             )
-
-            # If Django dies, the web service is useless,
-            # so stop the whole service.
             shutdown()
+            sys.exit(1)
 
-        # Worker died
+        # If worker stops, restart only the worker.
         if worker.poll() is not None:
             print(
-                f"Worker stopped with exit code {worker.returncode}",
+                f"Worker stopped: {worker.returncode}",
                 flush=True
             )
 
-            # Restart worker instead of killing Django.
             print("Restarting worker...", flush=True)
 
             worker = subprocess.Popen([
