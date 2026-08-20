@@ -4,22 +4,46 @@ import subprocess
 import sys
 import time
 
-processes = []
+
+worker = None
+server = None
+shutting_down = False
 
 
 def shutdown(signum=None, frame=None):
-    print("\nStopping Django and worker...")
+    global shutting_down
+
+    if shutting_down:
+        return
+
+    shutting_down = True
+
+    print("\nStopping Django and worker...", flush=True)
+
+    processes = [worker, server]
 
     for process in processes:
-        if process.poll() is None:
-            process.terminate()
+        if process is not None and process.poll() is None:
+            try:
+                process.terminate()
+            except ProcessLookupError:
+                pass
+
+    deadline = time.time() + 10
 
     for process in processes:
-        try:
-            process.wait(timeout=10)
-        except subprocess.TimeoutExpired:
-            process.kill()
+        if process is not None and process.poll() is None:
+            remaining = max(0, deadline - time.time())
 
+            try:
+                process.wait(timeout=remaining)
+            except subprocess.TimeoutExpired:
+                try:
+                    process.kill()
+                except ProcessLookupError:
+                    pass
+
+    print("Shutdown complete.", flush=True)
     sys.exit(0)
 
 
@@ -27,37 +51,65 @@ signal.signal(signal.SIGINT, shutdown)
 signal.signal(signal.SIGTERM, shutdown)
 
 
+port = os.environ.get("PORT", "8000")
+
+
+print("Starting QueueFabric worker...", flush=True)
+
 worker = subprocess.Popen([
-    "python",
+    sys.executable,
     "manage.py",
     "worker",
 ])
-processes.append(worker)
 
+
+print("Starting Django/Gunicorn...", flush=True)
 
 server = subprocess.Popen([
     "gunicorn",
     "config.wsgi:application",
     "--bind",
-    f"0.0.0.0:{os.environ.get('PORT', '8000')}",
+    f"0.0.0.0:{port}",
 ])
-processes.append(server)
 
-print("Django server started")
-print("Queue worker started")
+
+print("Django server started", flush=True)
+print("Queue worker started", flush=True)
 
 
 try:
     while True:
-        if worker.poll() is not None:
-            print("Worker stopped.")
+
+        # Django/Gunicorn died
+        if server.poll() is not None:
+            print(
+                f"Gunicorn stopped with exit code {server.returncode}",
+                flush=True
+            )
+
+            # If Django dies, the web service is useless,
+            # so stop the whole service.
             shutdown()
 
-        if server.poll() is not None:
-            print("Django server stopped.")
-            shutdown()
+        # Worker died
+        if worker.poll() is not None:
+            print(
+                f"Worker stopped with exit code {worker.returncode}",
+                flush=True
+            )
+
+            # Restart worker instead of killing Django.
+            print("Restarting worker...", flush=True)
+
+            worker = subprocess.Popen([
+                sys.executable,
+                "manage.py",
+                "worker",
+            ])
+
+            print("Worker restarted.", flush=True)
 
         time.sleep(2)
 
-except (KeyboardInterrupt, SystemExit):
+except KeyboardInterrupt:
     shutdown()

@@ -2,9 +2,7 @@ import axios from "axios";
 import { getAuthToken } from "@/features/auth/utils/authStorage";
 
 const apiClient = axios.create({
-  baseURL:
-    import.meta.env.VITE_API_URL ||
-    "https://queuefabric-2.onrender.com/api/v1/",
+  baseURL: import.meta.env.VITE_API_URL,
   headers: {
     "Content-Type": "application/json",
   },
