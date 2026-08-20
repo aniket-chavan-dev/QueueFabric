@@ -2,6 +2,7 @@ import os
 import signal
 import subprocess
 import sys
+import time
 
 processes = []
 
@@ -56,7 +57,7 @@ try:
             print("Django server stopped.")
             shutdown()
 
-        signal.pause()
+        time.sleep(2)
 
 except (KeyboardInterrupt, SystemExit):
     shutdown()
