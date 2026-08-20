@@ -1,25 +1,27 @@
-
-
 export interface User {
-  id: number
-  email: string
+  id: number;
+  email: string;
 }
 
 export interface AuthState {
-  
-  user: User | null
-  token: string | null
-  status: "idle" | "loading" | "authenticated"
+  user: User | null;
+  token: string | null;
+  status: "idle" | "loading" | "authenticated";
 }
 
 export interface AuthError {
-  email? : string[],
-  password? : string[]
+  email?: string[];
+  password?: string[];
 }
 
 export interface LoginResponse {
-  access_token : string;
-  refresh_token : string;
-  msg : string;
-  user : User;
+  access_token: string;
+  refresh_token: string;
+  msg: string;
+  user: User;
+}
+
+export interface AuthPayload {
+  user: User;
+  token: string;
 }

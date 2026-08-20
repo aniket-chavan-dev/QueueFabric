@@ -159,7 +159,7 @@ DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
 
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:5173",  
-    "https://yourfrontend.com",
+     "https://delicate-pavlova-32454c.netlify.app/login",
 ]
 
 CORS_ALLOW_CREDENTIALS = True

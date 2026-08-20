@@ -25,9 +25,9 @@ export default function LoginPage() {
         email,
         password,
       });
-      console.log("response data is",response.data);
-      const data : LoginResponse = response.data;
+      const data: LoginResponse = response.data;
       dispatch(loginSuccess(data));
+      console.log("navigating");
       navigate("/dashboard", { replace: true });
     } catch {
       dispatch(loginFailure());
@@ -45,7 +45,7 @@ export default function LoginPage() {
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             required
-           className="input-base"
+            className="input-base"
           />
 
           <input
@@ -54,7 +54,7 @@ export default function LoginPage() {
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             required
-             className="input-base"
+            className="input-base"
           />
 
           {error && <p className="text-red-500 text-sm">{error}</p>}
