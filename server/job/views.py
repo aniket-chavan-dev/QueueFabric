@@ -40,7 +40,6 @@ class JobViewSet(
             return [JobCreateThrottle()]
         return super().get_throttles()
 
-   
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(
             data=request.data,
@@ -66,15 +65,20 @@ class JobViewSet(
                     status=status.HTTP_400_BAD_REQUEST,
                 )
 
+            if job.status != JobStatus.FAILED:
+                return Response(
+                    {"detail": "Only failed jobs can be retried"},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
             if job.attempts >= job.max_attempts:
                 return Response(
                     {"detail": "Maximum retry attempts exceeded"},
                     status=status.HTTP_400_BAD_REQUEST,
                 )
 
-            job.attempts += 1
             job.status = JobStatus.PENDING
-            job.save(update_fields=["attempts", "status"])
+            job.save(update_fields=["status"])
 
         return Response(
             {"detail": "Job re-queued successfully"},
